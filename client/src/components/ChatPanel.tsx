@@ -54,16 +54,24 @@ export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps
               </p>
               <div className="mt-6 space-y-2 w-full">
                 <button
-                  onClick={() => setInput("Show me a summary of recent patient observations")}
-                  className="w-full text-left px-4 py-3 rounded-lg bg-accent/50 hover-elevate active-elevate-2 text-sm"
+                  onClick={() => {
+                    const message = "Show me a summary of recent patient observations";
+                    onSendMessage(message);
+                  }}
+                  disabled={isLoading}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-accent/50 hover-elevate active-elevate-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid="button-suggestion-1"
                 >
                   <span className="font-medium">Patient Observations</span>
                   <p className="text-xs text-muted-foreground mt-1">Recent vital signs and measurements</p>
                 </button>
                 <button
-                  onClick={() => setInput("Generate a report on patient conditions by status")}
-                  className="w-full text-left px-4 py-3 rounded-lg bg-accent/50 hover-elevate active-elevate-2 text-sm"
+                  onClick={() => {
+                    const message = "Generate a report on patient conditions by status";
+                    onSendMessage(message);
+                  }}
+                  disabled={isLoading}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-accent/50 hover-elevate active-elevate-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid="button-suggestion-2"
                 >
                   <span className="font-medium">Conditions Analysis</span>

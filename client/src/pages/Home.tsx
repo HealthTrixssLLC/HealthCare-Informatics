@@ -18,12 +18,13 @@ export default function Home() {
 
   const generateReportMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest<{ report: ReportData; assistantMessage: string }>(
+      const response = await apiRequest(
         'POST',
         '/api/generate-report',
         { message }
       );
-      return response;
+      const data = await response.json();
+      return data as { report: ReportData; assistantMessage: string };
     },
     onSuccess: (data) => {
       const assistantMessage: ChatMessage = {
