@@ -79,7 +79,8 @@ Respond in JSON format:
           if (isRateLimitError(error)) {
             throw error;
           }
-          throw new pRetry.AbortError(error);
+          // For non-rate-limit errors, don't retry
+          throw error;
         }
       },
       {

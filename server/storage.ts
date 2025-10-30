@@ -41,8 +41,12 @@ export class MemStorage implements IStorage {
   async createReport(insertReport: InsertReport): Promise<Report> {
     const id = randomUUID();
     const report: Report = {
-      ...insertReport,
       id,
+      title: insertReport.title,
+      content: insertReport.content,
+      chartData: insertReport.chartData || null,
+      metrics: insertReport.metrics || null,
+      fhirQuery: insertReport.fhirQuery || null,
       generatedAt: new Date(),
     };
     this.reports.set(id, report);
