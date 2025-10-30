@@ -1,37 +1,62 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type InsertMessage, type Message, type InsertReport, type Report } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Messages
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessages(): Promise<Message[]>;
+  
+  // Reports
+  createReport(report: InsertReport): Promise<Report>;
+  getReports(): Promise<Report[]>;
+  getReportById(id: string): Promise<Report | undefined>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private messages: Map<string, Message>;
+  private reports: Map<string, Report>;
 
   constructor() {
-    this.users = new Map();
+    this.messages = new Map();
+    this.reports = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const id = randomUUID();
+    const message: Message = {
+      ...insertMessage,
+      id,
+      timestamp: new Date(),
+    };
+    this.messages.set(id, message);
+    return message;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getMessages(): Promise<Message[]> {
+    return Array.from(this.messages.values()).sort(
+      (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createReport(insertReport: InsertReport): Promise<Report> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const report: Report = {
+      ...insertReport,
+      id,
+      generatedAt: new Date(),
+    };
+    this.reports.set(id, report);
+    return report;
+  }
+
+  async getReports(): Promise<Report[]> {
+    return Array.from(this.reports.values()).sort(
+      (a, b) => b.generatedAt.getTime() - a.generatedAt.getTime()
+    );
+  }
+
+  async getReportById(id: string): Promise<Report | undefined> {
+    return this.reports.get(id);
   }
 }
 
