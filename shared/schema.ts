@@ -51,7 +51,9 @@ export type FHIRCache = typeof fhirCache.$inferSelect;
 // Report schema
 export const reports = pgTable("reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
   title: text("title").notNull(),
+  summary: text("summary"),
   content: text("content").notNull(),
   chartData: jsonb("chart_data"),
   metrics: jsonb("metrics"),
@@ -86,12 +88,15 @@ export interface ChatMessage {
 
 export interface ReportData {
   id: string;
+  sessionId: string;
   title: string;
+  summary?: string;
   content: string;
   chartData?: ChartDataSet[];
   metrics?: MetricCard[];
   fhirQuery?: string;
   generatedAt: string;
+  sessionTitle?: string;
 }
 
 export interface ChartDataSet {

@@ -16,6 +16,7 @@ export interface IStorage {
   createReport(report: InsertReport): Promise<Report>;
   getReports(): Promise<Report[]>;
   getReportById(id: string): Promise<Report | undefined>;
+  getReportsBySessionId(sessionId: string): Promise<Report[]>;
   
   // FHIR Cache
   getCachedFHIRData(cacheKey: string): Promise<any | null>;
@@ -92,7 +93,9 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const report: Report = {
       id,
+      sessionId: insertReport.sessionId,
       title: insertReport.title,
+      summary: insertReport.summary || null,
       content: insertReport.content,
       chartData: insertReport.chartData || null,
       metrics: insertReport.metrics || null,
@@ -111,6 +114,12 @@ export class MemStorage implements IStorage {
 
   async getReportById(id: string): Promise<Report | undefined> {
     return this.reports.get(id);
+  }
+
+  async getReportsBySessionId(sessionId: string): Promise<Report[]> {
+    return Array.from(this.reports.values())
+      .filter(report => report.sessionId === sessionId)
+      .sort((a, b) => b.generatedAt.getTime() - a.generatedAt.getTime());
   }
 
   // FHIR Cache
