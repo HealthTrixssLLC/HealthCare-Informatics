@@ -14,6 +14,7 @@ import jsPDF from 'jspdf';
 export default function Home() {
   const [currentReport, setCurrentReport] = useState<ReportData | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const hasCreatedInitialSession = useRef(false);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
@@ -124,6 +125,10 @@ export default function Home() {
     setCurrentReport(null);
   };
 
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
   const handleExportPDF = () => {
     if (!currentReport) return;
 
@@ -201,6 +206,8 @@ export default function Home() {
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}
         isCreatingSession={createSessionMutation.isPending}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebar}
       />
 
       {/* Chat Panel */}

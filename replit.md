@@ -24,7 +24,7 @@ Preferred communication style: Simple, everyday language.
 
 **Styling**: Tailwind CSS with custom healthcare-focused design tokens. The theme system supports light and dark modes with carefully designed color schemes for medical data presentation. Typography uses Inter for UI elements and IBM Plex Mono for technical data.
 
-**Layout Pattern**: Three-column layout with session sidebar (256px) on the left, chat panel (384px) in the middle, and flexible report display on the right. Session sidebar shows all chat sessions with timestamps and message counts. Responsive behavior adapts to smaller screens.
+**Layout Pattern**: Three-column layout with collapsible session sidebar on the left, chat panel (384px) in the middle, and flexible report display on the right. Session sidebar can toggle between expanded (256px) showing full session details and collapsed (64px) showing only icons. This optimizes screen space usage while maintaining full functionality.
 
 **Data Visualization**: Recharts library for interactive healthcare charts (bar, line, pie, area charts) with custom theming to match the application's design system.
 
@@ -98,6 +98,10 @@ Color system uses HSL values with CSS custom properties for theme support. Spaci
   - "New Chat" button creates new sessions with auto-generated titles
   - Session switching instantly loads the selected conversation
   - First session automatically created on app load
+  - **Collapsible Sidebar**: Toggle between expanded (256px) and collapsed (64px) modes to optimize screen space
+    - Expanded mode shows full session details (titles, message counts, timestamps)
+    - Collapsed mode shows compact icons while maintaining full functionality
+    - Smooth transitions with ChevronLeft/ChevronRight toggle buttons
   
 - **FHIR Data Caching**: Implemented intelligent caching system to improve performance
   - 10-minute TTL (time-to-live) for cached FHIR responses

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ChatSessionData } from '@shared/schema';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -10,6 +10,8 @@ interface SessionSidebarProps {
   onSelectSession: (sessionId: string) => void;
   onNewSession: () => void;
   isCreatingSession: boolean;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 export function SessionSidebar({
@@ -18,23 +20,86 @@ export function SessionSidebar({
   onSelectSession,
   onNewSession,
   isCreatingSession,
+  isCollapsed,
+  onToggleCollapse,
 }: SessionSidebarProps) {
+  if (isCollapsed) {
+    return (
+      <div className="w-16 border-r bg-card/30 flex flex-col h-full">
+        {/* Collapsed Header */}
+        <div className="p-2 border-b flex flex-col gap-2">
+          <Button
+            onClick={onNewSession}
+            disabled={isCreatingSession}
+            size="icon"
+            className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            data-testid="button-new-chat"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+          <Button
+            onClick={onToggleCollapse}
+            size="icon"
+            variant="ghost"
+            className="w-full"
+            data-testid="button-toggle-sidebar"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Collapsed Sessions List */}
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-1">
+            {sessions.map((session) => (
+              <button
+                key={session.id}
+                onClick={() => onSelectSession(session.id)}
+                className={`w-full p-3 rounded-lg transition-all duration-200 flex items-center justify-center ${
+                  activeSessionId === session.id
+                    ? 'bg-primary/10 border border-primary/20'
+                    : 'hover-elevate'
+                }`}
+                data-testid={`button-session-${session.id}`}
+                title={session.title}
+              >
+                <MessageSquare className={`w-4 h-4 ${
+                  activeSessionId === session.id ? 'text-primary' : 'text-muted-foreground'
+                }`} />
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-64 border-r bg-card/30 flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b">
-        <Button
-          onClick={onNewSession}
-          disabled={isCreatingSession}
-          className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-          data-testid="button-new-chat"
-        >
-          <Plus className="w-4 h-4" />
-          New Chat
-        </Button>
+    <div className="w-64 border-r bg-card/30 flex flex-col h-full transition-all duration-300">
+      {/* Expanded Header */}
+      <div className="p-4 border-b space-y-2">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={onNewSession}
+            disabled={isCreatingSession}
+            className="flex-1 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+            data-testid="button-new-chat"
+          >
+            <Plus className="w-4 h-4" />
+            New Chat
+          </Button>
+          <Button
+            onClick={onToggleCollapse}
+            size="icon"
+            variant="ghost"
+            data-testid="button-toggle-sidebar"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Sessions List */}
+      {/* Expanded Sessions List */}
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {sessions.length === 0 ? (
