@@ -1,45 +1,97 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useState, useEffect, useRef } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { ChatPanel } from '@/components/ChatPanel';
 import { ReportDisplay } from '@/components/ReportDisplay';
-import { ChatMessage, ReportData } from '@shared/schema';
+import { SessionSidebar } from '@/components/SessionSidebar';
+import { ChatMessage, ReportData, ChatSessionData } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useTheme } from '@/components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
 
 export default function Home() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentReport, setCurrentReport] = useState<ReportData | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const hasCreatedInitialSession = useRef(false);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
 
+  // Fetch all sessions
+  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<ChatSessionData[]>({
+    queryKey: ['/api/sessions'],
+  });
+
+  // Fetch messages for active session
+  const { data: messages = [] } = useQuery<ChatMessage[]>({
+    queryKey: [`/api/sessions/${activeSessionId}/messages`],
+    enabled: !!activeSessionId,
+  });
+
+  // Create a new session on mount if none exists
+  useEffect(() => {
+    if (isLoadingSessions) return;
+    
+    if (sessions.length > 0 && !activeSessionId) {
+      setActiveSessionId(sessions[0].id);
+    } else if (sessions.length === 0 && !activeSessionId && !hasCreatedInitialSession.current) {
+      hasCreatedInitialSession.current = true;
+      createSessionMutation.mutate({ title: 'New Chat' });
+    }
+  }, [sessions.length, activeSessionId, isLoadingSessions]);
+
+  const createSessionMutation = useMutation({
+    mutationFn: async (data: { title: string }) => {
+      const response = await apiRequest('POST', '/api/sessions', data);
+      return await response.json();
+    },
+    onSuccess: async (newSession: ChatSessionData) => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+      setActiveSessionId(newSession.id);
+      setCurrentReport(null);
+      toast({
+        title: 'New Chat Created',
+        description: 'Started a new conversation',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create new chat session',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const generateReportMutation = useMutation({
-    mutationFn: async (message: string) => {
-      const response = await apiRequest(
-        'POST',
-        '/api/generate-report',
-        { message }
-      );
-      const data = await response.json();
-      return data as { report: ReportData; assistantMessage: string };
+    mutationFn: async ({ message, sessionId }: { message: string; sessionId: string }) => {
+      console.log('Mutation function called with:', { message, sessionId });
+      try {
+        const response = await apiRequest(
+          'POST',
+          '/api/generate-report',
+          { message, sessionId }
+        );
+        console.log('API response received:', response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+        return data as { report: ReportData; assistantMessage: string };
+      } catch (error) {
+        console.error('Error in mutation function:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.assistantMessage,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
       setCurrentReport(data.report);
+      queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/sessions/${activeSessionId}/messages`] });
     },
     onError: (error: any) => {
+      console.error('Mutation onError called with:', error);
       const errorType = error.response?.data?.errorType;
       let title = 'Error generating report';
-      let description = error.message;
+      let description = error.message || 'An unknown error occurred';
 
       if (errorType === 'FHIR_ERROR') {
         title = 'FHIR Server Error';
@@ -49,31 +101,42 @@ export default function Home() {
         description = 'Failed to generate AI analysis. Please try again in a moment.';
       }
 
+      console.log('Showing error toast:', { title, description });
       toast({
         title,
         description,
         variant: 'destructive',
       });
 
-      const errorMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: `I encountered an error: ${description}. Please try again or rephrase your request.`,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
     },
   });
 
   const handleSendMessage = (content: string) => {
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    generateReportMutation.mutate(content);
+    console.log('handleSendMessage called with:', content, 'activeSessionId:', activeSessionId);
+    
+    if (!activeSessionId) {
+      console.log('No active session, showing toast');
+      toast({
+        title: 'No Active Session',
+        description: 'Please create a new chat to continue',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    console.log('Calling mutation with:', { message: content, sessionId: activeSessionId });
+    generateReportMutation.mutate({ message: content, sessionId: activeSessionId });
+  };
+
+  const handleNewSession = () => {
+    const now = new Date();
+    const title = `Chat - ${now.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+    createSessionMutation.mutate({ title });
+  };
+
+  const handleSelectSession = (sessionId: string) => {
+    setActiveSessionId(sessionId);
+    setCurrentReport(null);
   };
 
   const handleExportPDF = () => {
@@ -146,6 +209,15 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-background">
+      {/* Session Sidebar */}
+      <SessionSidebar
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onSelectSession={handleSelectSession}
+        onNewSession={handleNewSession}
+        isCreatingSession={createSessionMutation.isPending}
+      />
+
       {/* Chat Panel */}
       <ChatPanel
         messages={messages}

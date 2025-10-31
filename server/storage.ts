@@ -28,6 +28,8 @@ export class MemStorage implements IStorage {
   private messages: Map<string, Message>;
   private reports: Map<string, Report>;
   private fhirCache: Map<string, FHIRCache>;
+  private lastCacheCleanup: number = 0;
+  private readonly CLEANUP_INTERVAL_MS = 60000; // Clean every 60 seconds
 
   constructor() {
     this.sessions = new Map();
@@ -113,7 +115,13 @@ export class MemStorage implements IStorage {
 
   // FHIR Cache
   async getCachedFHIRData(cacheKey: string): Promise<any | null> {
-    await this.cleanExpiredCache();
+    // Only clean periodically to avoid O(n) on every read
+    const now = Date.now();
+    if (now - this.lastCacheCleanup > this.CLEANUP_INTERVAL_MS) {
+      await this.cleanExpiredCache();
+      this.lastCacheCleanup = now;
+    }
+    
     const cached = Array.from(this.fhirCache.values()).find(
       cache => cache.cacheKey === cacheKey
     );
