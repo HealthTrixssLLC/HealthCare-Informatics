@@ -164,7 +164,8 @@ export class MemStorage implements IStorage {
 
   async cleanExpiredCache(): Promise<void> {
     const now = new Date();
-    for (const [id, cache] of this.fhirCache.entries()) {
+    const entries = Array.from(this.fhirCache.entries());
+    for (const [id, cache] of entries) {
       if (cache.expiresAt < now) {
         this.fhirCache.delete(id);
       }

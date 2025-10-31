@@ -7,9 +7,10 @@ import { ChatMessage, ReportData, ChatSessionData } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useTheme } from '@/components/ThemeProvider';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import jsPDF from 'jspdf';
+import { useLocation } from 'wouter';
 
 export default function Home() {
   const [currentReport, setCurrentReport] = useState<ReportData | null>(null);
@@ -18,6 +19,7 @@ export default function Home() {
   const hasCreatedInitialSession = useRef(false);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
+  const [, navigate] = useLocation();
 
   // Fetch all sessions
   const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<ChatSessionData[]>({
@@ -226,6 +228,14 @@ export default function Home() {
             <p className="text-sm text-muted-foreground mt-0.5">AI-Powered Healthcare Analytics</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/dashboard')}
+              data-testid="button-view-dashboard"
+            >
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              View Dashboard
+            </Button>
             <Button
               variant="outline"
               size="icon"
