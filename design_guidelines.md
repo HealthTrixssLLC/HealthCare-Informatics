@@ -1,4 +1,4 @@
-# Design Guidelines: FHIR Healthcare Report Generator
+# Design Guidelines: Healthcare Informatics
 
 ## Design Approach
 

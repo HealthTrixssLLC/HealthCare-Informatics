@@ -158,7 +158,7 @@ export default function Home() {
         {/* Header */}
         <header className="flex items-center justify-between px-8 py-5 border-b bg-gradient-to-r from-card/80 via-card to-card/80 backdrop-blur-sm shadow-sm">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">FHIR Report Generator</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Healthcare Informatics</h1>
             <p className="text-sm text-muted-foreground mt-0.5">AI-Powered Healthcare Analytics</p>
           </div>
           <div className="flex items-center gap-2">

@@ -23,7 +23,7 @@ export function ReportDisplay({ report, onExportPDF, onExportJSON }: ReportDispl
             </svg>
           </div>
         </div>
-        <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Welcome to FHIR Report Generator</h2>
+        <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Welcome to Healthcare Informatics</h2>
         <p className="text-lg text-muted-foreground max-w-lg mb-12 leading-relaxed">
           Use the chat interface to request healthcare reports. Our AI will analyze FHIR data and create comprehensive visualizations.
         </p>

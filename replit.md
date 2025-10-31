@@ -1,4 +1,4 @@
-# FHIR Healthcare Report Generator
+# Healthcare Informatics
 
 ## Overview
 
