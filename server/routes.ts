@@ -122,9 +122,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate report using AI
       const aiReport = await generateReportWithAI(message, fhirData);
 
+      // Generate summary from first 150 chars of content
+      const summary = aiReport.content.length > 150 
+        ? aiReport.content.substring(0, 150) + '...' 
+        : aiReport.content;
+
       // Create and store the report
       const report = await storage.createReport({
+        sessionId,
         title: aiReport.title,
+        summary,
         content: aiReport.content,
         chartData: aiReport.chartData,
         metrics: aiReport.metrics,
@@ -151,7 +158,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         report: {
           id: report.id,
+          sessionId: report.sessionId,
           title: report.title,
+          summary: report.summary,
           content: report.content,
           chartData: report.chartData,
           metrics: report.metrics,
@@ -175,29 +184,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all reports
+  // Get all reports with session information
   app.get("/api/reports", async (req, res) => {
     try {
       const reports = await storage.getReports();
-      res.json(reports.map(r => ({
-        ...r,
-        generatedAt: r.generatedAt.toISOString(),
-      })));
+      
+      // Enrich reports with session titles
+      const enrichedReports = await Promise.all(
+        reports.map(async (report) => {
+          const session = await storage.getSessionById(report.sessionId);
+          return {
+            ...report,
+            sessionTitle: session?.title,
+            generatedAt: report.generatedAt.toISOString(),
+          };
+        })
+      );
+      
+      res.json(enrichedReports);
     } catch (error) {
       console.error('Error fetching reports:', error);
       res.status(500).json({ error: 'Failed to fetch reports' });
     }
   });
 
-  // Get single report
+  // Get single report with session information
   app.get("/api/reports/:id", async (req, res) => {
     try {
       const report = await storage.getReportById(req.params.id);
       if (!report) {
         return res.status(404).json({ error: 'Report not found' });
       }
+      
+      const session = await storage.getSessionById(report.sessionId);
+      
       res.json({
         ...report,
+        sessionTitle: session?.title,
         generatedAt: report.generatedAt.toISOString(),
       });
     } catch (error) {
