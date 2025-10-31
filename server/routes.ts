@@ -4,12 +4,80 @@ import { storage } from "./storage";
 import { fhirClient } from "./fhir-client";
 import { generateReportWithAI, generateChatResponse } from "./openai-client";
 import { z } from "zod";
+import { insertChatSessionSchema } from "@shared/schema";
 
 const generateReportSchema = z.object({
   message: z.string().min(1, "Message cannot be empty").max(1000, "Message too long"),
+  sessionId: z.string().min(1, "Session ID is required"),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Create a new chat session
+  app.post("/api/sessions", async (req, res) => {
+    try {
+      const validationResult = insertChatSessionSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: 'Invalid request',
+          details: validationResult.error.issues 
+        });
+      }
+
+      const session = await storage.createSession(validationResult.data);
+      
+      res.json({
+        id: session.id,
+        title: session.title,
+        createdAt: session.createdAt.toISOString(),
+        updatedAt: session.updatedAt.toISOString(),
+      });
+    } catch (error) {
+      console.error('Error creating session:', error);
+      res.status(500).json({ error: 'Failed to create session' });
+    }
+  });
+
+  // Get all chat sessions
+  app.get("/api/sessions", async (req, res) => {
+    try {
+      const sessions = await storage.getSessions();
+      
+      // Include message count for each session
+      const sessionsWithCount = await Promise.all(
+        sessions.map(async (session) => {
+          const messages = await storage.getMessagesBySessionId(session.id);
+          return {
+            id: session.id,
+            title: session.title,
+            createdAt: session.createdAt.toISOString(),
+            updatedAt: session.updatedAt.toISOString(),
+            messageCount: messages.length,
+          };
+        })
+      );
+      
+      res.json(sessionsWithCount);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      res.status(500).json({ error: 'Failed to fetch sessions' });
+    }
+  });
+
+  // Get messages for a specific session
+  app.get("/api/sessions/:id/messages", async (req, res) => {
+    try {
+      const messages = await storage.getMessagesBySessionId(req.params.id);
+      res.json(messages.map(m => ({
+        ...m,
+        timestamp: m.timestamp.toISOString(),
+      })));
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+  });
+
   // Generate report endpoint
   app.post("/api/generate-report", async (req, res) => {
     try {
@@ -22,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { message } = validationResult.data;
+      const { message, sessionId } = validationResult.data;
 
       // Determine what FHIR data to fetch based on the message
       const messageLower = message.toLowerCase();
@@ -65,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store user message
       await storage.createMessage({
+        sessionId,
         role: 'user',
         content: message,
       });
@@ -74,6 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store assistant message
       await storage.createMessage({
+        sessionId,
         role: 'assistant',
         content: assistantMessage,
       });
