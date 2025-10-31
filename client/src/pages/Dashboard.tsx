@@ -27,7 +27,7 @@ export default function Dashboard() {
   });
 
   const handleViewReport = (report: ReportData) => {
-    navigate('/');
+    navigate(`/?reportId=${report.id}&sessionId=${report.sessionId}`);
   };
 
   return (

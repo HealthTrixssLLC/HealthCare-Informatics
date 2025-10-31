@@ -187,11 +187,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all reports with session information
   app.get("/api/reports", async (req, res) => {
     try {
-      const reports = await storage.getReports();
+      const allReports = await storage.getReports();
+      
+      // Sort by most recent first and limit to 50
+      const sortedReports = allReports
+        .sort((a, b) => b.generatedAt.getTime() - a.generatedAt.getTime())
+        .slice(0, 50);
       
       // Enrich reports with session titles
       const enrichedReports = await Promise.all(
-        reports.map(async (report) => {
+        sortedReports.map(async (report) => {
           const session = await storage.getSessionById(report.sessionId);
           return {
             ...report,

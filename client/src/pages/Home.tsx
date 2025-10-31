@@ -17,9 +17,10 @@ export default function Home() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const hasCreatedInitialSession = useRef(false);
+  const lastLoadedReportId = useRef<string | null>(null);
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   // Fetch all sessions
   const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<ChatSessionData[]>({
@@ -31,6 +32,48 @@ export default function Home() {
     queryKey: [`/api/sessions/${activeSessionId}/messages`],
     enabled: !!activeSessionId,
   });
+
+  // Load report from URL parameters (when navigating from dashboard)
+  useEffect(() => {
+    // wouter doesn't include query params in location, use window.location.search
+    const searchParams = new URLSearchParams(window.location.search);
+    const reportId = searchParams.get('reportId');
+    const sessionId = searchParams.get('sessionId');
+    
+    // Only process if we have params and haven't already loaded this report
+    if (reportId && sessionId && reportId !== lastLoadedReportId.current) {
+      console.log('[Home] Loading report from URL:', reportId, sessionId);
+      lastLoadedReportId.current = reportId;
+      setActiveSessionId(sessionId);
+      
+      // Fetch the specific report
+      fetch(`/api/reports`)
+        .then(res => res.json())
+        .then((reports: ReportData[]) => {
+          const report = reports.find(r => r.id === reportId);
+          if (report) {
+            console.log('[Home] Report loaded, clearing URL');
+            setCurrentReport(report);
+            // Clear URL parameters after report is loaded
+            setTimeout(() => {
+              window.history.replaceState({}, '', '/');
+              // Reset the ref so this report can be loaded again in the future
+              lastLoadedReportId.current = null;
+            }, 100);
+          } else {
+            console.log('[Home] Report not found, clearing URL');
+            window.history.replaceState({}, '', '/');
+            lastLoadedReportId.current = null;
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load report:', err);
+          // Clear URL even on error
+          window.history.replaceState({}, '', '/');
+          lastLoadedReportId.current = null;
+        });
+    }
+  }, [location]);
 
   // Create a new session on mount if none exists
   useEffect(() => {
@@ -81,6 +124,7 @@ export default function Home() {
       setCurrentReport(data.report);
       queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
       queryClient.invalidateQueries({ queryKey: [`/api/sessions/${activeSessionId}/messages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
     },
     onError: (error: any) => {
       const errorType = error.response?.data?.errorType;
