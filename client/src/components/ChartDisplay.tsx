@@ -140,9 +140,12 @@ export function ChartDisplay({ chartData }: ChartDisplayProps) {
   };
 
   return (
-    <Card className="p-6" data-testid={`card-chart-${chartData.id}`}>
-      <h3 className="text-xl font-semibold mb-4">{chartData.title}</h3>
-      <div className={chartData.type === 'pie' ? 'aspect-square' : 'aspect-video'}>
+    <Card className="p-8 bg-gradient-to-br from-card to-card/50 border-primary/10 hover-elevate transition-all duration-200 animate-in fade-in slide-in-from-bottom-2" data-testid={`card-chart-${chartData.id}`}>
+      <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
+        <span className="w-1 h-6 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
+        {chartData.title}
+      </h3>
+      <div className={chartData.type === 'pie' ? 'aspect-square max-w-2xl mx-auto' : 'aspect-video'}>
         {renderChart()}
       </div>
     </Card>

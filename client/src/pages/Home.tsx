@@ -156,16 +156,17 @@ export default function Home() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between px-6 py-4 border-b bg-background">
+        <header className="flex items-center justify-between px-8 py-5 border-b bg-gradient-to-r from-card/80 via-card to-card/80 backdrop-blur-sm shadow-sm">
           <div>
-            <h1 className="text-2xl font-bold">FHIR Report Generator</h1>
-            <p className="text-sm text-muted-foreground">AI-Powered Healthcare Analytics</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">FHIR Report Generator</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">AI-Powered Healthcare Analytics</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
               onClick={toggleTheme}
+              className="rounded-full hover-elevate"
               data-testid="button-theme-toggle"
             >
               {theme === 'light' ? (
