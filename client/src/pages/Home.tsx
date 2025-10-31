@@ -66,21 +66,13 @@ export default function Home() {
 
   const generateReportMutation = useMutation({
     mutationFn: async ({ message, sessionId }: { message: string; sessionId: string }) => {
-      console.log('Mutation function called with:', { message, sessionId });
-      try {
-        const response = await apiRequest(
-          'POST',
-          '/api/generate-report',
-          { message, sessionId }
-        );
-        console.log('API response received:', response.status);
-        const data = await response.json();
-        console.log('Response data:', data);
-        return data as { report: ReportData; assistantMessage: string };
-      } catch (error) {
-        console.error('Error in mutation function:', error);
-        throw error;
-      }
+      const response = await apiRequest(
+        'POST',
+        '/api/generate-report',
+        { message, sessionId }
+      );
+      const data = await response.json();
+      return data as { report: ReportData; assistantMessage: string };
     },
     onSuccess: (data) => {
       setCurrentReport(data.report);
@@ -88,7 +80,6 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: [`/api/sessions/${activeSessionId}/messages`] });
     },
     onError: (error: any) => {
-      console.error('Mutation onError called with:', error);
       const errorType = error.response?.data?.errorType;
       let title = 'Error generating report';
       let description = error.message || 'An unknown error occurred';
@@ -101,21 +92,16 @@ export default function Home() {
         description = 'Failed to generate AI analysis. Please try again in a moment.';
       }
 
-      console.log('Showing error toast:', { title, description });
       toast({
         title,
         description,
         variant: 'destructive',
       });
-
     },
   });
 
   const handleSendMessage = (content: string) => {
-    console.log('handleSendMessage called with:', content, 'activeSessionId:', activeSessionId);
-    
     if (!activeSessionId) {
-      console.log('No active session, showing toast');
       toast({
         title: 'No Active Session',
         description: 'Please create a new chat to continue',
@@ -124,7 +110,6 @@ export default function Home() {
       return;
     }
 
-    console.log('Calling mutation with:', { message: content, sessionId: activeSessionId });
     generateReportMutation.mutate({ message: content, sessionId: activeSessionId });
   };
 
