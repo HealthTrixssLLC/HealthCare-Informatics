@@ -18,7 +18,9 @@ Preferred communication style: Simple, everyday language.
 **Routing**: wouter for client-side routing.
 **Styling**: Tailwind CSS with custom healthcare-focused design tokens, supporting light/dark modes. Typography uses Inter and IBM Plex Mono.
 **Layout Pattern**: Three-column layout: collapsible session sidebar (left), chat panel (middle), flexible report display (right).
-**Data Visualization**: Recharts library for interactive healthcare charts (bar, line, pie, area) with custom theming.
+**Data Visualization**: Apache ECharts (echarts-for-react) for Power BI-style interactive visualizations with rich chart types, tooltips, legends, and drill-down capabilities.
+**Dashboard System**: react-grid-layout for drag/drop/resize tile-based layouts with persistent grid configurations.
+**Filter State Management**: Zustand store for cross-chart filter synchronization and reactive data updates.
 **Theme Management**: Custom ThemeProvider persists theme selection to localStorage.
 
 ### Backend Architecture
@@ -57,6 +59,40 @@ Preferred communication style: Simple, everyday language.
 ### Design System
 
 Material Design 3 with healthcare specialization. Emphasizes clinical clarity, data-first visual priority, conversational chat interface, and professional aesthetic. Uses HSL values with CSS custom properties for theme support, standardized Tailwind spacing, and custom border radii. Persistent dark/light mode toggle with localStorage sync.
+
+### Interactive Visualization System
+
+**Power BI-Style Dashboard**: Two-view system with tabbed interface:
+- **Traditional View**: Narrative report with metrics and static charts
+- **Interactive Dashboard**: Grid-based layout with draggable/resizable tiles, filters, and reactive visualizations
+
+**Filtering Architecture**:
+- FilterPanel component with multiselect controls (gender, age groups, conditions, date ranges)
+- Zustand store (`useFilterStore`) for centralized filter state management
+- `applyFiltersToDataset()` transforms sourceData based on active filters
+- `recalculateAllMetrics()` and `recalculateAllCharts()` regenerate visualizations from filtered data
+- React useMemo hooks ensure efficient re-rendering on filter changes
+
+**Chart Types & Interactivity**:
+- Demographic charts: Gender distribution (pie), Age distribution (bar)
+- Clinical charts: Condition prevalence (bar), Observation categories (bar), Severity distribution (pie)
+- All charts support: interactive legends, rich tooltips, drill-down capabilities, zoom/pan controls
+- Charts automatically recalculate data when filters are applied
+
+**Data Transformation Layer** (`reportTransform.ts`):
+- Heuristic-based chart/metric identification using ID and title keywords
+- Handles filtering for demographics, observations, conditions, and severity data
+- Gracefully falls back to original data when transformation doesn't apply
+- Supports edge cases where data types are missing (e.g., observations=0)
+
+**Grid Layout System**:
+- react-grid-layout with 12-column responsive grid
+- Configurable row height (default: 80px) and margins (16px)
+- Tile types: narrative, metric, chart
+- Layout metadata persisted in report schema for consistency across sessions
+- Support for drag, drop, and resize interactions
+
+**AI Resilience**: AI prompt updated (Nov 2025) to generate comprehensive reports even when specific data types are unavailable. Always generates minimum 3-4 metrics and 2-3 charts from available data (patients, conditions, observations).
 
 ## External Dependencies
 
