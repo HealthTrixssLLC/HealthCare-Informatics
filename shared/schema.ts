@@ -61,6 +61,8 @@ export const reports = pgTable("reports", {
   sourceData: jsonb("source_data"),
   filters: jsonb("filters"),
   layout: jsonb("layout"),
+  dataFetchedAt: timestamp("data_fetched_at"),
+  dataSource: text("data_source"),
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
 });
 
@@ -103,6 +105,8 @@ export interface ReportData {
   filters?: FilterDefinition[];
   layout?: DashboardLayout;
   sourceData?: SourceDataset;
+  dataFetchedAt?: string;
+  dataSource?: 'live' | 'cached';
 }
 
 export interface FilterDefinition {

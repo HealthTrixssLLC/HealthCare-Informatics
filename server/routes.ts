@@ -10,6 +10,7 @@ import { insertChatSessionSchema } from "@shared/schema";
 const generateReportSchema = z.object({
   message: z.string().min(1, "Message cannot be empty").max(1000, "Message too long"),
   sessionId: z.string().min(1, "Session ID is required"),
+  useCache: z.boolean().optional().default(false),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -91,34 +92,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { message, sessionId } = validationResult.data;
+      const { message, sessionId, useCache } = validationResult.data;
 
-      // Determine what FHIR data to fetch based on the message
-      const messageLower = message.toLowerCase();
       let fhirData: any = {};
+      let sourceData: any = null;
+      let dataFetchedAt: Date | null = null;
+      let dataSource: 'live' | 'cached' = 'live';
 
-      // Fetch relevant FHIR resources with comprehensive datasets
-      // Using default limits: 500 patients, 1000 observations/conditions
-      if (messageLower.includes('patient')) {
-        fhirData.patients = await fhirClient.getPatients();
-      }
-      
-      if (messageLower.includes('observation') || messageLower.includes('vital') || messageLower.includes('measurement')) {
-        fhirData.observations = await fhirClient.getObservations();
-      }
-      
-      if (messageLower.includes('condition') || messageLower.includes('diagnosis')) {
-        fhirData.conditions = await fhirClient.getConditions();
+      // Check if we should use cached data from a previous report
+      if (useCache) {
+        const previousReports = await storage.getReportsBySessionId(sessionId);
+        const mostRecentReport = previousReports[0]; // Already sorted by most recent
+
+        if (mostRecentReport && mostRecentReport.sourceData) {
+          console.log('[Routes] Using cached FHIR data from previous report');
+          sourceData = mostRecentReport.sourceData;
+          dataFetchedAt = mostRecentReport.dataFetchedAt || mostRecentReport.generatedAt;
+          dataSource = 'cached';
+          
+          // Reconstruct fhirData from sourceData for AI processing
+          fhirData = {
+            patients: sourceData.patients,
+            observations: sourceData.observations,
+            conditions: sourceData.conditions,
+          };
+        } else {
+          console.log('[Routes] No cached data available, fetching fresh data');
+        }
       }
 
-      // If no specific resource mentioned, fetch all comprehensive datasets
-      if (Object.keys(fhirData).length === 0) {
-        const [patients, observations, conditions] = await Promise.all([
-          fhirClient.getPatients(),
-          fhirClient.getObservations(),
-          fhirClient.getConditions(),
-        ]);
-        fhirData = { patients, observations, conditions };
+      // If not using cache or no cache available, fetch fresh data
+      if (!useCache || Object.keys(fhirData).length === 0) {
+        // Determine what FHIR data to fetch based on the message
+        const messageLower = message.toLowerCase();
+        
+        // Fetch relevant FHIR resources with comprehensive datasets
+        // Using default limits: 500 patients, 1000 observations/conditions
+        if (messageLower.includes('patient')) {
+          fhirData.patients = await fhirClient.getPatients();
+        }
+        
+        if (messageLower.includes('observation') || messageLower.includes('vital') || messageLower.includes('measurement')) {
+          fhirData.observations = await fhirClient.getObservations();
+        }
+        
+        if (messageLower.includes('condition') || messageLower.includes('diagnosis')) {
+          fhirData.conditions = await fhirClient.getConditions();
+        }
+
+        // If no specific resource mentioned, fetch all comprehensive datasets
+        if (Object.keys(fhirData).length === 0) {
+          const [patients, observations, conditions] = await Promise.all([
+            fhirClient.getPatients(),
+            fhirClient.getObservations(),
+            fhirClient.getConditions(),
+          ]);
+          fhirData = { patients, observations, conditions };
+        }
+
+        dataFetchedAt = new Date();
+        dataSource = 'live';
       }
 
       // Aggregate FHIR data for AI analysis (reduces data size from ~270KB to ~2-5KB)
@@ -126,10 +159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aggregatedData = aggregateFHIRData(fhirData);
       console.log('[Routes] Aggregation complete');
 
-      // Create source dataset for client-side filtering and interactive visualizations
-      console.log('[Routes] Creating source dataset for interactive filtering...');
-      const sourceData = createSourceDataset(fhirData);
-      console.log('[Routes] Source dataset created with', sourceData.metadata?.patientCount || 0, 'patients');
+      // Create source dataset for client-side filtering and interactive visualizations if not using cache
+      if (!sourceData) {
+        console.log('[Routes] Creating source dataset for interactive filtering...');
+        sourceData = createSourceDataset(fhirData);
+        console.log('[Routes] Source dataset created with', sourceData.metadata?.patientCount || 0, 'patients');
+      } else {
+        console.log('[Routes] Using cached source dataset with', sourceData.metadata?.patientCount || 0, 'patients');
+      }
 
       // Generate report using AI with aggregated data
       const aiReport = await generateReportWithAI(message, aggregatedData);
@@ -151,6 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sourceData,  // Include source data for client-side filtering
         filters: aiReport.filters,  // Include filter definitions from AI
         layout: aiReport.layout,  // Include layout configuration from AI
+        dataFetchedAt,  // Timestamp when FHIR data was fetched
+        dataSource,  // Whether data is 'live' or 'cached'
       });
 
       // Store user message
@@ -184,6 +223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sourceData: report.sourceData,
           filters: report.filters,
           layout: report.layout,
+          dataFetchedAt: report.dataFetchedAt?.toISOString(),
+          dataSource: report.dataSource,
         },
         assistantMessage,
       });
@@ -220,6 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...report,
             sessionTitle: session?.title,
             generatedAt: report.generatedAt.toISOString(),
+            dataFetchedAt: report.dataFetchedAt?.toISOString(),
           };
         })
       );
@@ -245,6 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...report,
         sessionTitle: session?.title,
         generatedAt: report.generatedAt.toISOString(),
+        dataFetchedAt: report.dataFetchedAt?.toISOString(),
       });
     } catch (error) {
       console.error('Error fetching report:', error);

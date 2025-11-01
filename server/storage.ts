@@ -103,6 +103,8 @@ export class MemStorage implements IStorage {
       sourceData: insertReport.sourceData || null,
       filters: insertReport.filters || null,
       layout: insertReport.layout || null,
+      dataFetchedAt: insertReport.dataFetchedAt || null,
+      dataSource: insertReport.dataSource || null,
       generatedAt: new Date(),
     };
     this.reports.set(id, report);
