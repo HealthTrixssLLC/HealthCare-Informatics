@@ -16,6 +16,7 @@ export default function Home() {
   const [currentReport, setCurrentReport] = useState<ReportData | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [useCache, setUseCache] = useState(false);
   const hasCreatedInitialSession = useRef(false);
   const lastLoadedReportId = useRef<string | null>(null);
   const { toast } = useToast();
@@ -111,11 +112,11 @@ export default function Home() {
   });
 
   const generateReportMutation = useMutation({
-    mutationFn: async ({ message, sessionId }: { message: string; sessionId: string }) => {
+    mutationFn: async ({ message, sessionId, useCache }: { message: string; sessionId: string; useCache?: boolean }) => {
       const response = await apiRequest(
         'POST',
         '/api/generate-report',
-        { message, sessionId }
+        { message, sessionId, useCache }
       );
       const data = await response.json();
       return data as { report: ReportData; assistantMessage: string };
@@ -157,7 +158,11 @@ export default function Home() {
       return;
     }
 
-    generateReportMutation.mutate({ message: content, sessionId: activeSessionId });
+    generateReportMutation.mutate({ 
+      message: content, 
+      sessionId: activeSessionId,
+      useCache 
+    });
   };
 
   const handleNewSession = () => {
@@ -261,6 +266,8 @@ export default function Home() {
         messages={messages}
         onSendMessage={handleSendMessage}
         isLoading={generateReportMutation.isPending}
+        useCache={useCache}
+        onUseCacheChange={setUseCache}
       />
 
       {/* Main Content Area */}

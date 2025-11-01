@@ -1,16 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, RefreshCw, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatMessage } from '@shared/schema';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
   onSendMessage: (message: string) => void;
   isLoading: boolean;
+  useCache: boolean;
+  onUseCacheChange: (value: boolean) => void;
 }
 
-export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps) {
+export function ChatPanel({ messages, onSendMessage, isLoading, useCache, onUseCacheChange }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +103,28 @@ export function ChatPanel({ messages, onSendMessage, isLoading }: ChatPanelProps
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="px-4 py-4 border-t bg-card">
+      <div className="px-4 py-4 border-t bg-card space-y-3">
+        {/* Data Source Toggle */}
+        <div className="flex items-center justify-between gap-4 px-3 py-2 rounded-md bg-accent/10 border border-accent/20">
+          <div className="flex items-center gap-2">
+            {useCache ? (
+              <Database className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <RefreshCw className="w-4 h-4 text-primary" />
+            )}
+            <Label htmlFor="use-cache" className="text-sm font-medium cursor-pointer">
+              {useCache ? 'Use Cached Data' : 'Refresh from Server'}
+            </Label>
+          </div>
+          <Switch
+            id="use-cache"
+            checked={useCache}
+            onCheckedChange={onUseCacheChange}
+            disabled={isLoading}
+            data-testid="switch-use-cache"
+          />
+        </div>
+
         <form onSubmit={handleSubmit} className="relative">
           <textarea
             value={input}

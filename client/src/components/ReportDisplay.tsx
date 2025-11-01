@@ -86,6 +86,16 @@ export function ReportDisplay({ report, onExportPDF, onExportJSON }: ReportDispl
                   </svg>
                   <span className="font-medium">FHIR Server</span>
                 </span>
+                {report.dataFetchedAt && (
+                  <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 border border-border/50" data-testid="text-data-source">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z M16 2v4M8 2v4M4 10h16" />
+                    </svg>
+                    <span className="text-xs font-medium">
+                      Data {report.dataSource === 'cached' ? 'from cache' : 'refreshed'}: {new Date(report.dataFetchedAt).toLocaleString()}
+                    </span>
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
