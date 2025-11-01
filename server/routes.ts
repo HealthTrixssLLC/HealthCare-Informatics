@@ -96,6 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let fhirData: any = {};
       let sourceData: any = null;
+      let aggregatedData: any = null;
       let dataFetchedAt: Date | null = null;
       let dataSource: 'live' | 'cached' = 'live';
 
@@ -104,25 +105,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const previousReports = await storage.getReportsBySessionId(sessionId);
         const mostRecentReport = previousReports[0]; // Already sorted by most recent
 
-        if (mostRecentReport && mostRecentReport.sourceData) {
+        if (mostRecentReport && mostRecentReport.sourceData && mostRecentReport.aggregatedData) {
           console.log('[Routes] Using cached FHIR data from previous report');
           sourceData = mostRecentReport.sourceData;
+          aggregatedData = mostRecentReport.aggregatedData;  // Reuse pre-aggregated data
           dataFetchedAt = mostRecentReport.dataFetchedAt || mostRecentReport.generatedAt;
           dataSource = 'cached';
-          
-          // Reconstruct fhirData from sourceData for AI processing
-          fhirData = {
-            patients: sourceData.patients,
-            observations: sourceData.observations,
-            conditions: sourceData.conditions,
-          };
         } else {
           console.log('[Routes] No cached data available, fetching fresh data');
         }
       }
 
       // If not using cache or no cache available, fetch fresh data
-      if (!useCache || Object.keys(fhirData).length === 0) {
+      if (!useCache || !aggregatedData) {
         // Determine what FHIR data to fetch based on the message
         const messageLower = message.toLowerCase();
         
@@ -152,20 +147,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         dataFetchedAt = new Date();
         dataSource = 'live';
-      }
 
-      // Aggregate FHIR data for AI analysis (reduces data size from ~270KB to ~2-5KB)
-      console.log('[Routes] Aggregating FHIR data for AI analysis...');
-      const aggregatedData = aggregateFHIRData(fhirData);
-      console.log('[Routes] Aggregation complete');
+        // Aggregate FHIR data for AI analysis (reduces data size from ~270KB to ~2-5KB)
+        console.log('[Routes] Aggregating FHIR data for AI analysis...');
+        aggregatedData = aggregateFHIRData(fhirData);
+        console.log('[Routes] Aggregation complete');
 
-      // Create source dataset for client-side filtering and interactive visualizations if not using cache
-      if (!sourceData) {
+        // Create source dataset for client-side filtering and interactive visualizations
         console.log('[Routes] Creating source dataset for interactive filtering...');
         sourceData = createSourceDataset(fhirData);
         console.log('[Routes] Source dataset created with', sourceData.metadata?.patientCount || 0, 'patients');
       } else {
-        console.log('[Routes] Using cached source dataset with', sourceData.metadata?.patientCount || 0, 'patients');
+        console.log('[Routes] Using cached aggregated data and source dataset with', sourceData.metadata?.patientCount || 0, 'patients');
       }
 
       // Generate report using AI with aggregated data
@@ -186,6 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metrics: aiReport.metrics,
         fhirQuery: message,
         sourceData,  // Include source data for client-side filtering
+        aggregatedData,  // Include aggregated data for cache reuse
         filters: aiReport.filters,  // Include filter definitions from AI
         layout: aiReport.layout,  // Include layout configuration from AI
         dataFetchedAt,  // Timestamp when FHIR data was fetched

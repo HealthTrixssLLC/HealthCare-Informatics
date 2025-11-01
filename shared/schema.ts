@@ -59,6 +59,7 @@ export const reports = pgTable("reports", {
   metrics: jsonb("metrics"),
   fhirQuery: text("fhir_query"),
   sourceData: jsonb("source_data"),
+  aggregatedData: jsonb("aggregated_data"),  // Cached aggregated FHIR data for AI processing
   filters: jsonb("filters"),
   layout: jsonb("layout"),
   dataFetchedAt: timestamp("data_fetched_at"),

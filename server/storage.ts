@@ -101,6 +101,7 @@ export class MemStorage implements IStorage {
       metrics: insertReport.metrics || null,
       fhirQuery: insertReport.fhirQuery || null,
       sourceData: insertReport.sourceData || null,
+      aggregatedData: insertReport.aggregatedData || null,
       filters: insertReport.filters || null,
       layout: insertReport.layout || null,
       dataFetchedAt: insertReport.dataFetchedAt || null,

@@ -56,32 +56,6 @@ export function ChatPanel({ messages, onSendMessage, isLoading, useCache, onUseC
               <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                 Ask for any healthcare report. I'll fetch data from the FHIR server and create visualizations for you.
               </p>
-              <div className="mt-8 space-y-3 w-full">
-                <button
-                  onClick={() => {
-                    const message = "Show me a summary of recent patient observations";
-                    onSendMessage(message);
-                  }}
-                  disabled={isLoading}
-                  className="w-full text-left px-5 py-4 rounded-xl bg-gradient-to-br from-accent to-accent/50 border border-accent-foreground/10 hover-elevate active-elevate-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
-                  data-testid="button-suggestion-1"
-                >
-                  <span className="font-semibold text-accent-foreground">Patient Observations</span>
-                  <p className="text-xs text-muted-foreground mt-1.5">Recent vital signs and measurements</p>
-                </button>
-                <button
-                  onClick={() => {
-                    const message = "Generate a report on patient conditions by status";
-                    onSendMessage(message);
-                  }}
-                  disabled={isLoading}
-                  className="w-full text-left px-5 py-4 rounded-xl bg-gradient-to-br from-accent to-accent/50 border border-accent-foreground/10 hover-elevate active-elevate-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
-                  data-testid="button-suggestion-2"
-                >
-                  <span className="font-semibold text-accent-foreground">Conditions Analysis</span>
-                  <p className="text-xs text-muted-foreground mt-1.5">Patient conditions breakdown</p>
-                </button>
-              </div>
             </div>
           )}
           
@@ -104,6 +78,32 @@ export function ChatPanel({ messages, onSendMessage, isLoading, useCache, onUseC
 
       {/* Input Area */}
       <div className="px-4 py-4 border-t bg-card space-y-3">
+        {/* Quick Action Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              const message = "Show me a summary of recent patient observations";
+              onSendMessage(message);
+            }}
+            disabled={isLoading}
+            className="flex-1 text-left px-3 py-2 rounded-lg bg-gradient-to-br from-accent/30 to-accent/10 border border-accent-foreground/10 hover-elevate active-elevate-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            data-testid="button-suggestion-1"
+          >
+            <span className="font-semibold text-accent-foreground">Patient Observations</span>
+          </button>
+          <button
+            onClick={() => {
+              const message = "Generate a report on patient conditions by status";
+              onSendMessage(message);
+            }}
+            disabled={isLoading}
+            className="flex-1 text-left px-3 py-2 rounded-lg bg-gradient-to-br from-accent/30 to-accent/10 border border-accent-foreground/10 hover-elevate active-elevate-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            data-testid="button-suggestion-2"
+          >
+            <span className="font-semibold text-accent-foreground">Conditions Analysis</span>
+          </button>
+        </div>
+
         {/* Data Source Toggle */}
         <div className="flex items-center justify-between gap-4 px-3 py-2 rounded-md bg-accent/10 border border-accent/20">
           <div className="flex items-center gap-2">
