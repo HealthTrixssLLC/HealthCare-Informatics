@@ -52,14 +52,19 @@ export async function generateReportWithAI(
 AGGREGATED FHIR DATA:
 ${JSON.stringify(fhirData, null, 2)}
 
-IMPORTANT: This is pre-aggregated data from a comprehensive FHIR dataset containing:
-- Patient demographics with age/gender distributions
-- Observation statistics by category and frequency
-- Condition prevalence and severity data
-- Sample records for context
+IMPORTANT: This is pre-aggregated data from a FHIR dataset. The available data includes:
+- Patients: ${fhirData.patients?.totalCount || 0} records
+- Observations: ${fhirData.observations?.totalCount || 0} records  
+- Conditions: ${fhirData.conditions?.totalCount || 0} records
 
-The aggregated data represents the full population in the FHIR server (500-1000 patients, 1000-2000 observations/conditions).
-Use this aggregated data to perform population-level health analysis.
+CRITICAL INSTRUCTION: Generate a comprehensive report using ALL available data, even if some data types are missing or have zero records. 
+- If patient data exists, create demographics charts (age/gender distribution) and patient metrics
+- If condition data exists, create condition prevalence charts and condition metrics
+- If observation data exists, create observation category charts and observation metrics
+- ALWAYS generate at least 3-4 metrics and 2-3 charts from the available data
+- If a specific data type has zero records, simply exclude charts/metrics that require that data type
+
+Use the aggregated data to perform population-level health analysis on the available records.
 
 Generate a comprehensive, interactive healthcare dashboard with Power BI-like visualizations. Provide:
 1. A clear, professional title for the report that includes cohort size (e.g., "n=500")
