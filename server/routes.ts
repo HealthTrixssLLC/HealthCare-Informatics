@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { fhirClient } from "./fhir-client";
 import { generateReportWithAI, generateChatResponse } from "./openai-client";
+import { aggregateFHIRData } from "./fhir-aggregator";
 import { z } from "zod";
 import { insertChatSessionSchema } from "@shared/schema";
 
@@ -96,31 +97,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messageLower = message.toLowerCase();
       let fhirData: any = {};
 
-      // Fetch relevant FHIR resources
+      // Fetch relevant FHIR resources with comprehensive datasets
+      // Using default limits: 500 patients, 1000 observations/conditions
       if (messageLower.includes('patient')) {
-        fhirData.patients = await fhirClient.getPatients(20);
+        fhirData.patients = await fhirClient.getPatients();
       }
       
       if (messageLower.includes('observation') || messageLower.includes('vital') || messageLower.includes('measurement')) {
-        fhirData.observations = await fhirClient.getObservations(50);
+        fhirData.observations = await fhirClient.getObservations();
       }
       
       if (messageLower.includes('condition') || messageLower.includes('diagnosis')) {
-        fhirData.conditions = await fhirClient.getConditions(50);
+        fhirData.conditions = await fhirClient.getConditions();
       }
 
-      // If no specific resource mentioned, fetch all
+      // If no specific resource mentioned, fetch all comprehensive datasets
       if (Object.keys(fhirData).length === 0) {
         const [patients, observations, conditions] = await Promise.all([
-          fhirClient.getPatients(15),
-          fhirClient.getObservations(30),
-          fhirClient.getConditions(30),
+          fhirClient.getPatients(),
+          fhirClient.getObservations(),
+          fhirClient.getConditions(),
         ]);
         fhirData = { patients, observations, conditions };
       }
 
-      // Generate report using AI
-      const aiReport = await generateReportWithAI(message, fhirData);
+      // Aggregate FHIR data for AI analysis (reduces data size from ~270KB to ~2-5KB)
+      console.log('[Routes] Aggregating FHIR data for AI analysis...');
+      const aggregatedData = aggregateFHIRData(fhirData);
+      console.log('[Routes] Aggregation complete');
+
+      // Generate report using AI with aggregated data
+      const aiReport = await generateReportWithAI(message, aggregatedData);
 
       // Generate summary from first 150 chars of content
       const summary = aiReport.content.length > 150 

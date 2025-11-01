@@ -38,9 +38,21 @@ Preferred communication style: Simple, everyday language.
 
 ### API Integration Patterns
 
-**FHIR Client Pattern**: Axios-based client for HAPI FHIR R4, with timeout, automatic pagination, and graceful error handling.
-**AI Client Pattern**: Structured prompts including user request and FHIR data payload, expecting JSON responses with predefined schema (title, content, metrics, chartData). Implements retry logic.
-**Data Flow**: User message → FHIR resource determination → FHIR data fetch → AI processing with context → AI response parsing → Storage → Client display.
+**FHIR Client Pattern**: Axios-based client for HAPI FHIR R4 with comprehensive data fetching capabilities:
+- Automatic pagination following FHIR pagination links (100 records per page)
+- Configurable limits: 500 patients, 1000 observations, 1000 conditions (default)
+- 15-second timeout per request with graceful error handling
+- 10-minute TTL caching for performance optimization
+
+**FHIR Data Aggregation**: Smart aggregation system reduces data payload from ~270KB to ~2-5KB before AI processing:
+- Patient demographics: gender distribution, age groups (0-18, 19-30, 31-50, 51-70, 70+), average/median age
+- Observations: category counts, top 10 common tests with frequencies
+- Conditions: top 15 conditions, severity distribution
+- Includes 5 sample records per resource type for context
+
+**AI Client Pattern**: Structured prompts with aggregated FHIR data instead of raw records, expecting JSON responses with predefined schema (title, content, metrics, chartData). Implements retry logic with exponential backoff for rate limit handling.
+
+**Data Flow**: User message → FHIR resource determination → Fetch comprehensive datasets (500-1000 records) → Aggregate to statistics → Send aggregated data to AI → Parse AI response → Storage → Client display with visualizations.
 
 ### Design System
 

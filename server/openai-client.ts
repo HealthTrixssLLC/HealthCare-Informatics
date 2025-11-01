@@ -30,16 +30,41 @@ export async function generateReportWithAI(
     pRetry(
       async () => {
         try {
+          // Log data sizes to understand if we're sending too much data
+          const dataSize = JSON.stringify(fhirData).length;
+          console.log(`[AI] Generating report for request: "${userRequest}"`);
+          console.log(`[AI] Aggregated FHIR data size: ${dataSize} characters`);
+          console.log(`[AI] Data summary:`, {
+            patients: fhirData.patients?.totalCount || 0,
+            observations: fhirData.observations?.totalCount || 0,
+            conditions: fhirData.conditions?.totalCount || 0
+          });
+
           const prompt = `You are a healthcare data analyst. A user has requested: "${userRequest}"
 
-FHIR Data Available:
+AGGREGATED FHIR DATA:
 ${JSON.stringify(fhirData, null, 2)}
 
-Generate a comprehensive healthcare report based on this request and the FHIR data. Analyze the data and provide:
+IMPORTANT: This is pre-aggregated data from a comprehensive FHIR dataset containing:
+- Patient demographics with age/gender distributions
+- Observation statistics by category and frequency
+- Condition prevalence and severity data
+- Sample records for context
+
+The aggregated data represents the full population in the FHIR server (500-1000 patients, 1000-2000 observations/conditions).
+Use this aggregated data to perform population-level health analysis.
+
+Generate a comprehensive healthcare report based on this request and the aggregated FHIR data. Provide:
 1. A clear, professional title for the report
-2. A detailed analysis with insights (2-3 paragraphs)
-3. Key metrics (4 metrics with labels, values, and optional trends)
-4. Chart data for visualizations (suggest 2-3 charts based on the data)
+2. A detailed analysis with insights (2-3 paragraphs) that leverages the aggregated statistics for population health insights, trends, and patterns
+3. Key metrics (4 metrics with labels, values, and descriptions) - use the provided statistics
+4. Chart data for visualizations (2-3 charts) - create visualizations from the aggregated data
+
+Your analysis should include:
+- Population-level statistics and demographic insights
+- Health trends identified from observation and condition data
+- Statistically significant patterns in the data
+- Comparative analysis across patient groups (age, gender, etc.)
 
 Respond in JSON format:
 {
@@ -67,15 +92,38 @@ Respond in JSON format:
           });
 
           const content = response.choices[0]?.message?.content || "{}";
-          const result = JSON.parse(content);
+          console.log(`[AI] Response received, parsing JSON...`);
+          
+          let result;
+          try {
+            result = JSON.parse(content);
+            console.log(`[AI] Successfully parsed AI response`);
+          } catch (parseError) {
+            console.error('[AI] Failed to parse AI response as JSON:', parseError);
+            console.error('[AI] Raw response content:', content.substring(0, 500));
+            throw new Error('Failed to parse AI response');
+          }
 
-          return {
+          const report = {
             title: result.title || "Healthcare Report",
             content: result.content || "No analysis available.",
             chartData: result.chartData || [],
             metrics: result.metrics || [],
           };
+
+          console.log(`[AI] Report generated:`, {
+            title: report.title,
+            contentLength: report.content.length,
+            metricsCount: report.metrics.length,
+            chartsCount: report.chartData.length
+          });
+
+          return report;
         } catch (error: any) {
+          console.error('[AI] Error generating report:', error.message);
+          if (error.response) {
+            console.error('[AI] Error response:', error.response.data);
+          }
           if (isRateLimitError(error)) {
             throw error;
           }
