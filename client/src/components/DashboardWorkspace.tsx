@@ -1,15 +1,17 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import type { ReportData } from '@shared/schema';
 import { useFilterStore } from '@/stores/filterStore';
+import { useCrossFilterStore } from '@/stores/crossFilterStore';
 import { applyFiltersToDataset, recalculateAllMetrics, recalculateAllCharts } from '@/lib/reportTransform';
 import InteractiveChart from './InteractiveChart';
 import FilterPanel from './FilterPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Activity, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, Users, Activity, AlertCircle, X } from 'lucide-react';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -19,8 +21,10 @@ interface DashboardWorkspaceProps {
 }
 
 export default function DashboardWorkspace({ report, className = '' }: DashboardWorkspaceProps) {
-  const { sourceData, activeFilters, setSourceData, setFilterDefinitions } = useFilterStore();
+  const { sourceData, activeFilters, setSourceData, setFilterDefinitions, updateFilter } = useFilterStore();
+  const { crossFilters, addCrossFilter, removeCrossFilter, clearAllCrossFilters, getCombinedFilters } = useCrossFilterStore();
   const [layouts, setLayouts] = useState<Layout[]>([]);
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   // Initialize filter store with report data
   useEffect(() => {
@@ -32,11 +36,68 @@ export default function DashboardWorkspace({ report, className = '' }: Dashboard
     }
   }, [report.id, report.sourceData, report.filters, setSourceData, setFilterDefinitions]);
 
-  // Calculate filtered data based on active filters
+  // Handle chart click events for cross-filtering
+  useEffect(() => {
+    const handleChartClick = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { chartId, chartTitle, dataPoint } = customEvent.detail;
+      
+      // Determine filter field from chart context
+      let filterField = '';
+      let filterValue = dataPoint.name;
+      
+      // Map chart titles to filter fields (you can enhance this logic)
+      const chartTitleLower = chartTitle?.toLowerCase() || '';
+      if (chartTitleLower.includes('gender') || chartTitleLower.includes('sex')) {
+        filterField = 'gender';
+      } else if (chartTitleLower.includes('age')) {
+        filterField = 'ageGroup';
+      } else if (chartTitleLower.includes('condition')) {
+        filterField = 'condition';
+      } else if (chartTitleLower.includes('observation')) {
+        filterField = 'observationType';
+      }
+      
+      if (filterField && filterValue) {
+        // Check if this filter already exists
+        const existingFilter = crossFilters.find(
+          f => f.sourceChartId === chartId && f.filterField === filterField && f.filterValue === filterValue
+        );
+        
+        if (existingFilter) {
+          // Remove filter if clicking the same data point again
+          removeCrossFilter(chartId);
+        } else {
+          // Add new cross-filter
+          addCrossFilter({
+            sourceChartId: chartId,
+            filterField,
+            filterValue,
+            timestamp: Date.now()
+          });
+        }
+      }
+    };
+    
+    const dashboard = dashboardRef.current;
+    if (dashboard) {
+      dashboard.addEventListener('chartClick', handleChartClick as EventListener);
+      return () => {
+        dashboard.removeEventListener('chartClick', handleChartClick as EventListener);
+      };
+    }
+  }, [crossFilters, addCrossFilter, removeCrossFilter]);
+
+  // Combine manual filters with cross-filters
+  const combinedFilters = useMemo(() => {
+    return getCombinedFilters(activeFilters);
+  }, [activeFilters, crossFilters, getCombinedFilters]);
+
+  // Calculate filtered data based on combined filters (manual + cross-filters)
   const filteredData = useMemo(() => {
     if (!sourceData || !report.sourceData) return report.sourceData;
-    return applyFiltersToDataset(sourceData, activeFilters);
-  }, [sourceData, activeFilters, report.sourceData]);
+    return applyFiltersToDataset(sourceData, combinedFilters);
+  }, [sourceData, combinedFilters, report.sourceData]);
 
   // Recalculate all metrics from filtered data using comprehensive transformation
   const filteredMetrics = useMemo(() => {
@@ -128,23 +189,69 @@ export default function DashboardWorkspace({ report, className = '' }: Dashboard
   };
 
   return (
-    <div className={`flex flex-col lg:flex-row gap-4 ${className}`}>
+    <div className={`flex flex-col lg:flex-row gap-4 ${className}`} ref={dashboardRef}>
       {/* Filter Panel - Left Side */}
       {report.filters && report.filters.length > 0 && (
         <div className="lg:w-80 flex-shrink-0">
           <FilterPanel />
+          
+          {/* Cross-Filter Badges */}
+          {crossFilters.length > 0 && (
+            <Card className="mt-4">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Active Cross-Filters</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllCrossFilters}
+                    className="h-6 text-xs"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {crossFilters.map((filter) => (
+                  <div
+                    key={filter.sourceChartId}
+                    className="flex items-center justify-between gap-2 p-2 bg-primary/5 rounded-md border border-primary/20"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">
+                        {filter.filterField}: {filter.filterValue}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeCrossFilter(filter.sourceChartId)}
+                      className="h-5 w-5 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
       {/* Main Dashboard Grid */}
       <div className="flex-1 min-w-0">
-        {filteredData?.metadata && Object.keys(activeFilters).length > 0 && (
+        {filteredData?.metadata && (Object.keys(activeFilters).length > 0 || crossFilters.length > 0) && (
           <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-md">
             <p className="text-sm text-muted-foreground">
               Showing <span className="font-semibold text-foreground">{filteredData.metadata.patientCount}</span> patients
               {sourceData?.metadata && sourceData.metadata.patientCount !== filteredData.metadata.patientCount && (
                 <span className="ml-1">
                   (filtered from {sourceData.metadata.patientCount})
+                </span>
+              )}
+              {crossFilters.length > 0 && (
+                <span className="ml-2 text-xs text-primary">
+                  • {crossFilters.length} cross-filter{crossFilters.length > 1 ? 's' : ''} active
                 </span>
               )}
             </p>

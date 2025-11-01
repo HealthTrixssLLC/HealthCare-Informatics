@@ -44,13 +44,15 @@ interface InteractiveChartProps {
   onDataClick?: (params: any) => void;
   height?: string;
   className?: string;
+  enableCrossFilter?: boolean;
 }
 
 export default function InteractiveChart({ 
   chart, 
   onDataClick,
   height = '400px',
-  className = ''
+  className = '',
+  enableCrossFilter = true
 }: InteractiveChartProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -418,9 +420,39 @@ export default function InteractiveChart({
     }
   };
 
-  const onEvents: Record<string, Function> | undefined = onDataClick ? {
-    click: onDataClick,
-  } : undefined;
+  // Handle chart clicks for cross-filtering or custom handlers
+  const handleChartClick = (params: any) => {
+    // Call custom handler if provided
+    if (onDataClick) {
+      onDataClick(params);
+    }
+    
+    // Enable cross-filtering by default for interactive charts
+    if (enableCrossFilter && params.data) {
+      // The DashboardWorkspace will handle the cross-filter logic
+      // This passes the event up with chart context
+      const event = new CustomEvent('chartClick', {
+        detail: {
+          chartId: chart.id,
+          chartTitle: chart.title,
+          dataPoint: {
+            name: params.name || params.data.name,
+            value: params.value || params.data.value,
+            seriesName: params.seriesName
+          }
+        },
+        bubbles: true
+      });
+      
+      if (params.event?.event?.target) {
+        params.event.event.target.dispatchEvent(event);
+      }
+    }
+  };
+
+  const onEvents: Record<string, Function> = {
+    click: handleChartClick,
+  };
 
   return (
     <div className={className} data-testid={`chart-${chart.id}`}>
