@@ -6,7 +6,7 @@ import type { ReportData } from '@shared/schema';
 import { useFilterStore } from '@/stores/filterStore';
 import { useCrossFilterStore } from '@/stores/crossFilterStore';
 import { applyFiltersToDataset, recalculateAllMetrics, recalculateAllCharts } from '@/lib/reportTransform';
-import InteractiveChart from './InteractiveChart';
+import HybridChart from './HybridChart';
 import FilterPanel from './FilterPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -334,9 +334,10 @@ export default function DashboardWorkspace({ report, className = '' }: Dashboard
                   <CardTitle className="text-base">{chart.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-2">
-                  <InteractiveChart
+                  <HybridChart
                     chart={chart}
                     height="100%"
+                    enableCrossFilter={true}
                   />
                 </CardContent>
               </Card>

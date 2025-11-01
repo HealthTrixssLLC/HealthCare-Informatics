@@ -8,6 +8,9 @@ A modern healthcare data analytics platform that transforms FHIR data into insig
 - **FHIR Data Integration**: Connects to FHIR R4 servers to fetch patient, observation, and condition data
 - **AI-Powered Reports**: Uses OpenAI to generate comprehensive healthcare analytics reports
 - **Interactive Dashboards**: Power BI-style interactive visualizations with cross-filtering
+- **Dual Charting Libraries**: Combines ECharts and Plotly.js for optimal visualization
+  - **ECharts**: Fast, standard charts (bar, line, pie, area, scatter)
+  - **Plotly.js**: Advanced visualizations (3D, heatmap, box plots, violin, sunburst, waterfall)
 - **Advanced Analytics**: KPI cards, waterfall charts, matrix tables, and AI insights
 - **Real-time Filtering**: Dynamic data filtering with instant visualization updates
 - **Session Management**: Persistent chat sessions with report history
@@ -89,9 +92,12 @@ cp .env.example .env
 # From project root
 npm install
 
-# Install additional dependencies for Power BI features
-npm install recharts react-grid-layout zustand date-fns
-npm install --save-dev @types/react-grid-layout
+# All visualization libraries are already included:
+# - recharts (for sparklines and simple charts)
+# - echarts & echarts-for-react (for interactive dashboards)
+# - plotly.js & react-plotly.js (for advanced statistical visualizations)
+# - react-grid-layout (for drag-and-drop dashboards)
+# - zustand (for state management)
 ```
 
 ## 🚀 Running the Application
@@ -265,7 +271,9 @@ client/src/
 - React 18 with TypeScript
 - TanStack Query for data fetching
 - Zustand for state management
-- ECharts & Recharts for visualizations
+- **ECharts** for standard interactive visualizations
+- **Plotly.js** for advanced statistical & 3D charts
+- **Recharts** for sparklines and small charts
 - react-grid-layout for dashboards
 - shadcn/ui + Tailwind CSS
 - Wouter for routing
