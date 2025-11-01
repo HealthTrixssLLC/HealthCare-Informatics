@@ -58,6 +58,9 @@ export const reports = pgTable("reports", {
   chartData: jsonb("chart_data"),
   metrics: jsonb("metrics"),
   fhirQuery: text("fhir_query"),
+  sourceData: jsonb("source_data"),
+  filters: jsonb("filters"),
+  layout: jsonb("layout"),
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
 });
 
@@ -97,13 +100,146 @@ export interface ReportData {
   fhirQuery?: string;
   generatedAt: string;
   sessionTitle?: string;
+  filters?: FilterDefinition[];
+  layout?: DashboardLayout;
+  sourceData?: SourceDataset;
+}
+
+export interface FilterDefinition {
+  id: string;
+  label: string;
+  type: 'select' | 'multiselect' | 'daterange' | 'numberrange' | 'search';
+  field: string;
+  options?: FilterOption[];
+  defaultValue?: any;
+  description?: string;
+}
+
+export interface FilterOption {
+  label: string;
+  value: string | number;
+  count?: number;
+}
+
+export interface DashboardLayout {
+  tiles: LayoutTile[];
+  columns?: number;
+  rowHeight?: number;
+}
+
+export interface LayoutTile {
+  i: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  minW?: number;
+  minH?: number;
+  maxW?: number;
+  maxH?: number;
+  type: 'chart' | 'metric' | 'narrative';
+  chartId?: string;
+}
+
+export interface SourceDataset {
+  patients?: PatientAggregate[];
+  observations?: ObservationAggregate[];
+  conditions?: ConditionAggregate[];
+  demographics?: DemographicSummary;
+  metadata?: DatasetMetadata;
+}
+
+export interface PatientAggregate {
+  id: string;
+  gender?: string;
+  ageGroup?: string;
+  age?: number;
+  birthDate?: string;
+}
+
+export interface ObservationAggregate {
+  id: string;
+  patientId?: string;
+  category?: string;
+  code?: string;
+  display?: string;
+  value?: number;
+  unit?: string;
+  date?: string;
+}
+
+export interface ConditionAggregate {
+  id: string;
+  patientId?: string;
+  code?: string;
+  display?: string;
+  severity?: string;
+  category?: string;
+  onsetDate?: string;
+}
+
+export interface DemographicSummary {
+  totalPatients: number;
+  genderDistribution: Record<string, number>;
+  ageGroups: Record<string, number>;
+  averageAge?: number;
+  medianAge?: number;
+}
+
+export interface DatasetMetadata {
+  generatedAt: string;
+  patientCount: number;
+  observationCount: number;
+  conditionCount: number;
+  dataSource: string;
 }
 
 export interface ChartDataSet {
   id: string;
   title: string;
-  type: 'bar' | 'line' | 'pie' | 'area';
+  type: 'bar' | 'line' | 'pie' | 'area' | 'scatter' | 'heatmap' | 'treemap' | 'funnel' | 'gauge';
   data: ChartDataPoint[];
+  xAxis?: AxisConfig;
+  yAxis?: AxisConfig;
+  series?: SeriesConfig[];
+  tooltip?: TooltipConfig;
+  legend?: LegendConfig;
+  drilldown?: DrilldownConfig;
+  description?: string;
+}
+
+export interface AxisConfig {
+  label?: string;
+  type?: 'category' | 'value' | 'time' | 'log';
+  min?: number;
+  max?: number;
+  unit?: string;
+}
+
+export interface SeriesConfig {
+  name: string;
+  type?: 'bar' | 'line' | 'scatter' | 'pie';
+  dataKey: string;
+  color?: string;
+  stack?: string;
+  smooth?: boolean;
+}
+
+export interface TooltipConfig {
+  formatter?: string;
+  shared?: boolean;
+}
+
+export interface LegendConfig {
+  show?: boolean;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  orient?: 'horizontal' | 'vertical';
+}
+
+export interface DrilldownConfig {
+  enabled: boolean;
+  levels?: string[];
+  dataKey?: string;
 }
 
 export interface ChartDataPoint {
@@ -120,6 +256,8 @@ export interface MetricCard {
     percentage: number;
   };
   description?: string;
+  unit?: string;
+  icon?: string;
 }
 
 // FHIR Resource types

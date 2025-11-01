@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { fhirClient } from "./fhir-client";
 import { generateReportWithAI, generateChatResponse } from "./openai-client";
-import { aggregateFHIRData } from "./fhir-aggregator";
+import { aggregateFHIRData, createSourceDataset } from "./fhir-aggregator";
 import { z } from "zod";
 import { insertChatSessionSchema } from "@shared/schema";
 
@@ -126,6 +126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aggregatedData = aggregateFHIRData(fhirData);
       console.log('[Routes] Aggregation complete');
 
+      // Create source dataset for client-side filtering and interactive visualizations
+      console.log('[Routes] Creating source dataset for interactive filtering...');
+      const sourceData = createSourceDataset(fhirData);
+      console.log('[Routes] Source dataset created with', sourceData.metadata?.patientCount || 0, 'patients');
+
       // Generate report using AI with aggregated data
       const aiReport = await generateReportWithAI(message, aggregatedData);
 
@@ -134,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? aiReport.content.substring(0, 150) + '...' 
         : aiReport.content;
 
-      // Create and store the report
+      // Create and store the report with source data for interactivity
       const report = await storage.createReport({
         sessionId,
         title: aiReport.title,
@@ -143,6 +148,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chartData: aiReport.chartData,
         metrics: aiReport.metrics,
         fhirQuery: message,
+        sourceData,  // Include source data for client-side filtering
+        filters: aiReport.filters,  // Include filter definitions from AI
+        layout: aiReport.layout,  // Include layout configuration from AI
       });
 
       // Store user message
@@ -173,6 +181,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           metrics: report.metrics,
           fhirQuery: report.fhirQuery,
           generatedAt: report.generatedAt.toISOString(),
+          sourceData: report.sourceData,
+          filters: report.filters,
+          layout: report.layout,
         },
         assistantMessage,
       });

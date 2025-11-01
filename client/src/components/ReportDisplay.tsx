@@ -1,9 +1,11 @@
-import { Download, FileJson, FileText } from 'lucide-react';
+import { Download, FileJson, FileText, LayoutDashboard, FileText as FileTextIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReportData } from '@shared/schema';
 import { MetricCards } from './MetricCards';
 import { ChartDisplay } from './ChartDisplay';
+import DashboardWorkspace from './DashboardWorkspace';
 
 interface ReportDisplayProps {
   report: ReportData | null;
@@ -62,93 +64,113 @@ export function ReportDisplay({ report, onExportPDF, onExportJSON }: ReportDispl
 
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="max-w-6xl mx-auto px-8 py-10">
-        <Card className="rounded-2xl p-10 shadow-2xl border-primary/10 bg-gradient-to-br from-card via-card to-card/90 animate-in fade-in slide-in-from-bottom-4 duration-500" data-testid="card-report">
-          {/* Report Header */}
-          <div className="mb-10">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex-1">
-                <div className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs font-semibold mb-4 border border-primary/20">
-                  AI-Generated Report
-                </div>
-                <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent" data-testid="text-report-title">{report.title}</h1>
-                <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {new Date(report.generatedAt).toLocaleString()}
-                  </span>
-                  <span className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/10 text-secondary">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                    </svg>
-                    <span className="font-semibold">FHIR Server</span>
-                  </span>
-                </div>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Report Header */}
+        <div className="mb-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <div className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-primary text-xs font-semibold mb-3 border border-primary/20">
+                AI-Generated Report
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onExportJSON}
-                  className="gap-2"
-                  data-testid="button-export-json"
-                >
-                  <FileJson className="w-4 h-4" />
-                  JSON
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onExportPDF}
-                  className="gap-2"
-                  data-testid="button-export-pdf"
-                >
-                  <FileText className="w-4 h-4" />
-                  PDF
-                </Button>
+              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent" data-testid="text-report-title">{report.title}</h1>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {new Date(report.generatedAt).toLocaleString()}
+                </span>
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                  </svg>
+                  <span className="font-medium">FHIR Server</span>
+                </span>
               </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExportJSON}
+                className="gap-2"
+                data-testid="button-export-json"
+              >
+                <FileJson className="w-4 h-4" />
+                JSON
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onExportPDF}
+                className="gap-2"
+                data-testid="button-export-pdf"
+              >
+                <FileText className="w-4 h-4" />
+                PDF
+              </Button>
             </div>
           </div>
+        </div>
 
-          {/* Key Metrics */}
-          {report.metrics && report.metrics.length > 0 && (
-            <div className="mb-12">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <span className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
-                Key Metrics
-              </h2>
-              <MetricCards metrics={report.metrics} />
-            </div>
-          )}
+        {/* Interactive Dashboard / Traditional View Tabs */}
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="dashboard" className="gap-2" data-testid="tab-dashboard">
+              <LayoutDashboard className="w-4 h-4" />
+              Interactive Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="traditional" className="gap-2" data-testid="tab-traditional">
+              <FileTextIcon className="w-4 h-4" />
+              Traditional View
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Report Content */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <span className="w-1 h-8 bg-gradient-to-b from-chart-2 to-chart-2/50 rounded-full"></span>
-              Analysis
-            </h2>
-            <div className="prose prose-sm max-w-none">
-              <div className="text-base leading-loose whitespace-pre-wrap p-6 rounded-xl bg-muted/30 border border-border/50" data-testid="text-report-content">
-                {report.content}
+          <TabsContent value="dashboard" className="mt-0">
+            <DashboardWorkspace report={report} />
+          </TabsContent>
+
+          <TabsContent value="traditional" className="mt-0">
+            <Card className="rounded-2xl p-10 shadow-2xl border-primary/10 bg-gradient-to-br from-card via-card to-card/90 animate-in fade-in duration-300" data-testid="card-report">
+              {/* Key Metrics */}
+              {report.metrics && report.metrics.length > 0 && (
+                <div className="mb-12">
+                  <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                    <span className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
+                    Key Metrics
+                  </h2>
+                  <MetricCards metrics={report.metrics} />
+                </div>
+              )}
+
+              {/* Report Content */}
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+                  <span className="w-1 h-8 bg-gradient-to-b from-chart-2 to-chart-2/50 rounded-full"></span>
+                  Analysis
+                </h2>
+                <div className="prose prose-sm max-w-none">
+                  <div className="text-base leading-loose whitespace-pre-wrap p-6 rounded-xl bg-muted/30 border border-border/50" data-testid="text-report-content">
+                    {report.content}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Charts */}
-          {report.chartData && report.chartData.length > 0 && (
-            <div className="space-y-10">
-              <h2 className="text-2xl font-bold flex items-center gap-3">
-                <span className="w-1 h-8 bg-gradient-to-b from-chart-3 to-chart-3/50 rounded-full"></span>
-                Visualizations
-              </h2>
-              {report.chartData.map((chartSet) => (
-                <ChartDisplay key={chartSet.id} chartData={chartSet} />
-              ))}
-            </div>
-          )}
-        </Card>
+              {/* Charts */}
+              {report.chartData && report.chartData.length > 0 && (
+                <div className="space-y-10">
+                  <h2 className="text-2xl font-bold flex items-center gap-3">
+                    <span className="w-1 h-8 bg-gradient-to-b from-chart-3 to-chart-3/50 rounded-full"></span>
+                    Visualizations
+                  </h2>
+                  {report.chartData.map((chartSet) => (
+                    <ChartDisplay key={chartSet.id} chartData={chartSet} />
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

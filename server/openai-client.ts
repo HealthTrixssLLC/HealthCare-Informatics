@@ -23,7 +23,14 @@ function isRateLimitError(error: any): boolean {
 export async function generateReportWithAI(
   userRequest: string,
   fhirData: any
-): Promise<{ title: string; content: string; chartData: any[]; metrics: any[] }> {
+): Promise<{ 
+  title: string; 
+  content: string; 
+  chartData: any[]; 
+  metrics: any[];
+  filters?: any[];
+  layout?: any;
+}> {
   const limit = pLimit(1);
 
   return limit(() =>
@@ -40,7 +47,7 @@ export async function generateReportWithAI(
             conditions: fhirData.conditions?.totalCount || 0
           });
 
-          const prompt = `You are a healthcare data analyst. A user has requested: "${userRequest}"
+          const prompt = `You are a healthcare data analyst creating interactive Power BI-style dashboards. A user has requested: "${userRequest}"
 
 AGGREGATED FHIR DATA:
 ${JSON.stringify(fhirData, null, 2)}
@@ -54,11 +61,20 @@ IMPORTANT: This is pre-aggregated data from a comprehensive FHIR dataset contain
 The aggregated data represents the full population in the FHIR server (500-1000 patients, 1000-2000 observations/conditions).
 Use this aggregated data to perform population-level health analysis.
 
-Generate a comprehensive healthcare report based on this request and the aggregated FHIR data. Provide:
-1. A clear, professional title for the report
+Generate a comprehensive, interactive healthcare dashboard with Power BI-like visualizations. Provide:
+1. A clear, professional title for the report that includes cohort size (e.g., "n=500")
 2. A detailed analysis with insights (2-3 paragraphs) that leverages the aggregated statistics for population health insights, trends, and patterns
-3. Key metrics (4 metrics with labels, values, and descriptions) - use the provided statistics
-4. Chart data for visualizations (2-3 charts) - create visualizations from the aggregated data
+3. Key metrics (4 metrics with labels, values, descriptions, and units) - use the provided statistics
+4. Rich chart configurations (3-5 charts) with enhanced options for interactivity:
+   - Use varied chart types: bar, line, pie, area, scatter, treemap, funnel, gauge
+   - Include axis labels, tooltips, and legend configurations
+   - Provide detailed chart descriptions
+5. Interactive filters for the dashboard:
+   - Gender filter (multiselect)
+   - Age group filter (multiselect)
+   - Condition category filter (if applicable)
+   - Date range filter (if temporal data exists)
+6. Dashboard layout with grid positions for tiles (charts, metrics, narrative)
 
 Your analysis should include:
 - Population-level statistics and demographic insights
@@ -68,19 +84,60 @@ Your analysis should include:
 
 Respond in JSON format:
 {
-  "title": "Report Title",
+  "title": "Report Title (n=500)",
   "content": "Detailed analysis...",
   "metrics": [
-    { "label": "Metric Name", "value": "123", "description": "Brief description" }
+    { 
+      "label": "Total Patients", 
+      "value": "500", 
+      "description": "Number of patients in cohort",
+      "unit": "patients",
+      "icon": "users"
+    }
   ],
   "chartData": [
     {
       "id": "chart1",
-      "title": "Chart Title",
-      "type": "bar|line|pie|area",
-      "data": [{"name": "Category", "value": 10}]
+      "title": "Age Distribution",
+      "type": "bar",
+      "description": "Patient age group distribution",
+      "data": [{"name": "0-18", "value": 75, "percentage": 15}],
+      "xAxis": {"label": "Age Group", "type": "category"},
+      "yAxis": {"label": "Patient Count", "type": "value", "unit": "patients"},
+      "legend": {"show": true, "position": "top"}
     }
-  ]
+  ],
+  "filters": [
+    {
+      "id": "gender",
+      "label": "Gender",
+      "type": "multiselect",
+      "field": "gender",
+      "options": [
+        {"label": "Male", "value": "male", "count": 250},
+        {"label": "Female", "value": "female", "count": 250}
+      ]
+    },
+    {
+      "id": "ageGroup",
+      "label": "Age Group",
+      "type": "multiselect",
+      "field": "ageGroup",
+      "options": [
+        {"label": "0-18", "value": "0-18", "count": 75},
+        {"label": "19-30", "value": "19-30", "count": 100}
+      ]
+    }
+  ],
+  "layout": {
+    "columns": 12,
+    "rowHeight": 80,
+    "tiles": [
+      {"i": "narrative", "x": 0, "y": 0, "w": 12, "h": 2, "type": "narrative"},
+      {"i": "metric-0", "x": 0, "y": 2, "w": 3, "h": 1, "type": "metric"},
+      {"i": "chart-0", "x": 0, "y": 3, "w": 6, "h": 4, "type": "chart", "chartId": "chart1"}
+    ]
+  }
 }`;
 
           // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user

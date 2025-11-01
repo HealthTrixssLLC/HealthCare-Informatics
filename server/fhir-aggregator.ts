@@ -1,4 +1,14 @@
-import type { FHIRPatient, FHIRObservation, FHIRCondition } from '@shared/schema';
+import type { 
+  FHIRPatient, 
+  FHIRObservation, 
+  FHIRCondition,
+  SourceDataset,
+  PatientAggregate,
+  ObservationAggregate,
+  ConditionAggregate,
+  DemographicSummary,
+  DatasetMetadata
+} from '@shared/schema';
 
 /**
  * Aggregates FHIR data into a summarized format suitable for AI analysis
@@ -163,4 +173,122 @@ export function aggregateFHIRData(fhirData: {
   }
 
   return aggregated;
+}
+
+/**
+ * Creates a normalized source dataset for client-side filtering and interactions
+ * This provides the raw data in a structured format that can be filtered dynamically
+ */
+export function createSourceDataset(fhirData: {
+  patients?: FHIRPatient[];
+  observations?: FHIRObservation[];
+  conditions?: FHIRCondition[];
+}): SourceDataset {
+  const sourceData: SourceDataset = {};
+
+  // Transform patients into normalized format
+  if (fhirData.patients && fhirData.patients.length > 0) {
+    sourceData.patients = fhirData.patients.map((patient: any): PatientAggregate => {
+      const birthDate = patient.birthDate ? new Date(patient.birthDate) : null;
+      const age = birthDate ? new Date().getFullYear() - birthDate.getFullYear() : undefined;
+      
+      let ageGroup: string | undefined;
+      if (age !== undefined) {
+        if (age <= 18) ageGroup = '0-18';
+        else if (age <= 30) ageGroup = '19-30';
+        else if (age <= 50) ageGroup = '31-50';
+        else if (age <= 70) ageGroup = '51-70';
+        else ageGroup = '70+';
+      }
+
+      return {
+        id: patient.id,
+        gender: patient.gender,
+        ageGroup,
+        age,
+        birthDate: patient.birthDate
+      };
+    });
+  }
+
+  // Transform observations into normalized format
+  if (fhirData.observations && fhirData.observations.length > 0) {
+    sourceData.observations = fhirData.observations.map((obs: any): ObservationAggregate => {
+      return {
+        id: obs.id,
+        patientId: obs.subject?.reference?.split('/')?.[1],
+        category: obs.category?.[0]?.coding?.[0]?.display || obs.category?.[0]?.text,
+        code: obs.code?.coding?.[0]?.code || obs.code?.text,
+        display: obs.code?.coding?.[0]?.display || obs.code?.text,
+        value: obs.valueQuantity?.value,
+        unit: obs.valueQuantity?.unit,
+        date: obs.effectiveDateTime
+      };
+    });
+  }
+
+  // Transform conditions into normalized format
+  if (fhirData.conditions && fhirData.conditions.length > 0) {
+    sourceData.conditions = fhirData.conditions.map((cond: any): ConditionAggregate => {
+      return {
+        id: cond.id,
+        patientId: cond.subject?.reference?.split('/')?.[1],
+        code: cond.code?.coding?.[0]?.code || cond.code?.text,
+        display: cond.code?.coding?.[0]?.display || cond.code?.text,
+        severity: cond.severity?.coding?.[0]?.display || cond.severity?.text,
+        category: cond.category?.[0]?.coding?.[0]?.display || cond.category?.[0]?.text,
+        onsetDate: cond.onsetDateTime
+      };
+    });
+  }
+
+  // Create demographic summary
+  if (sourceData.patients && sourceData.patients.length > 0) {
+    const genderDist: Record<string, number> = {};
+    const ageGroups: Record<string, number> = {
+      '0-18': 0,
+      '19-30': 0,
+      '31-50': 0,
+      '51-70': 0,
+      '70+': 0
+    };
+    const ages: number[] = [];
+
+    sourceData.patients.forEach(patient => {
+      if (patient.gender) {
+        genderDist[patient.gender] = (genderDist[patient.gender] || 0) + 1;
+      }
+      if (patient.ageGroup) {
+        ageGroups[patient.ageGroup]++;
+      }
+      if (patient.age !== undefined) {
+        ages.push(patient.age);
+      }
+    });
+
+    const avgAge = ages.length > 0 ? ages.reduce((a, b) => a + b, 0) / ages.length : undefined;
+    const sortedAges = [...ages].sort((a, b) => a - b);
+    const medianAge = sortedAges.length > 0 
+      ? sortedAges[Math.floor(sortedAges.length / 2)] 
+      : undefined;
+
+    sourceData.demographics = {
+      totalPatients: sourceData.patients.length,
+      genderDistribution: genderDist,
+      ageGroups,
+      averageAge: avgAge ? Math.round(avgAge * 10) / 10 : undefined,
+      medianAge
+    };
+  }
+
+  // Create metadata
+  sourceData.metadata = {
+    generatedAt: new Date().toISOString(),
+    patientCount: sourceData.patients?.length || 0,
+    observationCount: sourceData.observations?.length || 0,
+    conditionCount: sourceData.conditions?.length || 0,
+    dataSource: 'HAPI FHIR R4'
+  };
+
+  return sourceData;
 }

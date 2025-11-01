@@ -100,6 +100,9 @@ export class MemStorage implements IStorage {
       chartData: insertReport.chartData || null,
       metrics: insertReport.metrics || null,
       fhirQuery: insertReport.fhirQuery || null,
+      sourceData: insertReport.sourceData || null,
+      filters: insertReport.filters || null,
+      layout: insertReport.layout || null,
       generatedAt: new Date(),
     };
     this.reports.set(id, report);
